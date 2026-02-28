@@ -44,6 +44,8 @@ export async function scrapeTrends(
         "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
       "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
       Referer: BASE_URL,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
     },
     cache: "no-store",
   });

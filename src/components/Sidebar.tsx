@@ -21,7 +21,7 @@ const GROUPS = [
   { id: "global", label: "全球" },
 ];
 
-const HOURS = [1, 4, 8, 24];
+const HOURS = [1, 4, 24];
 
 export default function Sidebar({
   activeGroup,
@@ -107,7 +107,7 @@ export default function Sidebar({
         <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2 px-1">
           时间范围
         </div>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {HOURS.map((h) => (
             <button
               key={h}
