@@ -74,6 +74,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [open, setOpen] = useState(false);
   const [aiHours, setAiHours] = useState(data.hours);
   const [aiData, setAiData] = useState<TrendData>(data);
+  const [format, setFormat] = useState<"short" | "long">("long");
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
 
@@ -179,7 +180,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
     setError("");
 
     try {
-      await streamText({ ...basePayload, mode: "article", topic }, (chunk) => {
+      await streamText({ ...basePayload, mode: "article", topic, format }, (chunk) => {
         setArticle((prev) => prev + chunk);
       });
       setStep("done");
@@ -216,6 +217,32 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Format toggle */}
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5">
+            <button
+              onClick={() => setFormat("short")}
+              disabled={isLoading}
+              className={`px-2 py-1 rounded text-xs transition-all cursor-pointer disabled:opacity-40 ${
+                format === "short"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              短文
+            </button>
+            <button
+              onClick={() => setFormat("long")}
+              disabled={isLoading}
+              className={`px-2 py-1 rounded text-xs transition-all cursor-pointer disabled:opacity-40 ${
+                format === "long"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              长文
+            </button>
+          </div>
+
           {/* Hours selector */}
           <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5">
             {HOURS_OPTIONS.map((h) => (
@@ -362,6 +389,9 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span className="text-xs text-white/40">例文</span>
+                <span className="text-xs text-white/20 bg-white/5 px-1.5 py-0.5 rounded">
+                  {format === "short" ? "短文 ≤280字" : "长文 600-1000字"}
+                </span>
                 {step === "done" && (
                   <button
                     onClick={() => {

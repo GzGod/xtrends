@@ -23,6 +23,7 @@ interface RequestBody {
   hours: number;
   // article mode only
   topic?: string;
+  format?: "short" | "long";
 }
 
 function buildTopicsPrompt(body: RequestBody): string {
@@ -78,7 +79,19 @@ const ARTICLE_SYSTEM_PROMPT = `你是一个中文内容写作者，风格融合�
 
 禁用句式：不是…而是…、说白了…、真正的…、换句话说…、所以…、自问自答`;
 
-function buildArticlePrompt(topic: string): string {
+function buildArticlePrompt(topic: string, format: "short" | "long"): string {
+  if (format === "short") {
+    return `请围绕以下选题，按照你的写作风格写一条推特短文：
+
+选题：${topic}
+
+要求：
+- 严格控制在 280 字以内（中文字符计数）
+- 语气克制，信息浓缩，一针见血
+- 可以有断裂感和留白，不需要完整结构
+- 结尾可以不加免责声明
+- 直接输出正文，不要任何前言或说明`;
+  }
   return `请围绕以下选题，按照你的写作风格写一篇推特长文/文章：
 
 选题：${topic}
@@ -159,7 +172,7 @@ export async function POST(req: NextRequest) {
       }
       return await streamFromAI(apiBase, apiKey, model, [
         { role: "system", content: ARTICLE_SYSTEM_PROMPT },
-        { role: "user", content: buildArticlePrompt(body.topic) },
+        { role: "user", content: buildArticlePrompt(body.topic, body.format ?? "long") },
       ]);
     } else {
       return await streamFromAI(apiBase, apiKey, model, [
