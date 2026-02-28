@@ -14,6 +14,7 @@ interface TweetSummary {
 }
 
 interface RequestBody {
+  model?: string;
   tweets: TweetSummary[];
   domainTags: { name: string; count: number }[];
   hotTags: { name: string; count: number }[];
@@ -69,7 +70,7 @@ ${tweetLines}
 export async function POST(req: NextRequest) {
   const apiKey = process.env.AI_API_KEY;
   const apiBase = process.env.AI_API_BASE || "https://max.openai365.top/v1";
-  const model = process.env.AI_MODEL || "gemini-2.5-pro";
+  const defaultModel = process.env.AI_MODEL || "gemini-2.5-pro";
 
   if (!apiKey) {
     return new Response(
@@ -87,6 +88,9 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // Use model from request body if provided, otherwise fall back to env/default
+  const model = body.model || defaultModel;
 
   const prompt = buildPrompt(body);
 
