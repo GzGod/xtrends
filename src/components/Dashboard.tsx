@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TrendData } from "@/lib/scraper";
 import TweetCard from "@/components/TweetCard";
 import Sidebar from "@/components/Sidebar";
+import TopicAnalytics from "@/components/TopicAnalytics";
 
 const SORT_OPTIONS = [
   { id: "rank", label: "热度排名" },
@@ -99,6 +100,12 @@ export default function Dashboard() {
 
         {/* Main content */}
         <main className="flex-1 min-w-0">
+          {/* Topic analytics panel */}
+          {(data?.domainTags?.length ?? 0) > 0 && (
+            <div className="mb-5">
+              <TopicAnalytics tweets={tweets} domainTags={data?.domainTags ?? []} />
+            </div>
+          )}
           {/* Toolbar */}
           <div className="flex items-center gap-3 mb-5">
             {/* Search */}
