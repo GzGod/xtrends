@@ -7,6 +7,8 @@ interface WritingAdviceProps {
   data: TrendData;
 }
 
+const HOURS_OPTIONS = [1, 4, 24];
+
 const MODELS = [
   { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
   { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
@@ -70,8 +72,35 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [article, setArticle] = useState("");
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [aiHours, setAiHours] = useState(data.hours);
+  const [aiData, setAiData] = useState<TrendData>(data);
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
+
+  // Sync aiHours default when parent data changes (e.g. group switch)
+  useEffect(() => {
+    setAiHours(data.hours);
+    setAiData(data);
+  }, [data.group]);
+
+  const fetchAiData = async (h: number) => {
+    setAiHours(h);
+    if (h === data.hours) {
+      setAiData(data);
+      return;
+    }
+    try {
+      const params = new URLSearchParams({ group: data.group, hours: String(h) });
+      const res = await fetch(`/api/trends?${params}`);
+      if (res.ok) {
+        const json: TrendData = await res.json();
+        setAiData(json);
+      }
+    } catch {
+      // fallback to current data
+      setAiData(data);
+    }
+  };
 
   // Close picker on outside click
   useEffect(() => {
@@ -101,7 +130,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
 
   const basePayload = {
     model,
-    tweets: data.tweets.slice(0, 30).map((t) => ({
+    tweets: aiData.tweets.slice(0, 30).map((t) => ({
       rank: t.rank,
       author: t.author,
       content: t.content,
@@ -110,10 +139,10 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       heatScore: t.heatScore,
       tags: t.tags,
     })),
-    domainTags: data.domainTags,
-    hotTags: data.hotTags,
-    group: data.group,
-    hours: data.hours,
+    domainTags: aiData.domainTags,
+    hotTags: aiData.hotTags,
+    group: aiData.group,
+    hours: aiData.hours,
   };
 
   const generateTopics = async () => {
@@ -187,6 +216,24 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Hours selector */}
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5">
+            {HOURS_OPTIONS.map((h) => (
+              <button
+                key={h}
+                onClick={() => fetchAiData(h)}
+                disabled={isLoading}
+                className={`px-2 py-1 rounded text-xs font-mono transition-all cursor-pointer disabled:opacity-40 ${
+                  aiHours === h
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                    : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                {h}h
+              </button>
+            ))}
+          </div>
+
           {/* Model picker */}
           <div>
             <button
