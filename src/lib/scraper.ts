@@ -13,11 +13,11 @@ export interface Tweet {
   heatScore: number;
   tags: string[];
   url: string;
-  timestamp?: string;
 }
 
 export interface TrendData {
   tweets: Tweet[];
+  domainTags: { name: string; count: number }[];
   hotTags: { name: string; count: number }[];
   fetchedAt: string;
   group: string;
@@ -45,11 +45,11 @@ export async function scrapeTrends(
       "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
       Referer: BASE_URL,
     },
-    next: { revalidate: 0 },
+    cache: "no-store",
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to fetch: ${res.status} ${res.statusText}`);
+    throw new Error(`HTTP ${res.status} ${res.statusText}`);
   }
 
   const html = await res.text();
@@ -59,104 +59,101 @@ export async function scrapeTrends(
 function parseTrends(html: string, group: string, hours: number): TrendData {
   const $ = cheerio.load(html);
   const tweets: Tweet[] = [];
-  const hotTags: { name: string; count: number }[] = [];
 
-  // Parse hot tags
-  $("[class*='tag'], [class*='Tag']").each((_, el) => {
-    const text = $(el).text().trim();
-    const countEl = $(el).find("[class*='count'], span").last();
-    const count = parseInt(countEl.text().replace(/\D/g, "")) || 0;
-    if (text && count > 0) {
-      hotTags.push({ name: text, count });
-    }
-  });
+  // Each tweet: li > a[href*="twitter.com/*/status/"]
+  $("li").each((_, li) => {
+    const $a = $(li).find('a[href*="twitter.com/"][href*="/status/"]').first();
+    if (!$a.length) return;
 
-  // Parse tweet cards - try multiple selectors
-  const tweetSelectors = [
-    "article",
-    "[class*='tweet']",
-    "[class*='Tweet']",
-    "[class*='card']",
-    "li[class*='item']",
-    "div[class*='item']",
-  ];
+    const url = $a.attr("href") || "";
+    const tweetId = url.match(/status\/(\d+)/)?.[1] || "";
+    if (!tweetId) return;
 
-  let tweetEls = $("");
-  for (const sel of tweetSelectors) {
-    const found = $(sel);
-    if (found.length > 5) {
-      tweetEls = found;
-      break;
-    }
-  }
-
-  tweetEls.each((index, el) => {
-    const $el = $(el);
-
-    // Extract text content
-    const allText = $el.text().trim();
-    if (!allText || allText.length < 10) return;
-
-    // Try to find author/handle
-    const handleEl = $el.find("[class*='handle'], [class*='username'], a[href*='twitter.com'], a[href*='x.com']").first();
-    const handle = handleEl.text().trim().replace(/^@/, "") || "";
-
-    const nameEl = $el.find("[class*='name'], [class*='author']").first();
-    const author = nameEl.text().trim() || handle;
+    // Rank from aria-label="Rank N"
+    const rankText = $a.find('[aria-label^="Rank"]').first().text().trim();
+    const rank = parseInt(rankText) || 0;
 
     // Avatar
-    const avatarEl = $el.find("img").first();
-    const avatar = avatarEl.attr("src") || "";
+    const avatar = $a.find("img").first().attr("src") || "";
 
-    // Content - find the main text block
-    const contentEl = $el.find("p, [class*='content'], [class*='text'], [class*='body']").first();
-    const content = contentEl.text().trim() || allText.slice(0, 200);
+    // Author name: p with text-slate-100 class
+    const author = $a.find("p.text-slate-100").first().text().trim();
 
-    // Metrics
-    const numbers = allText.match(/[\d,.]+[KkMm]?/g) || [];
-    const views = numbers[0] || "0";
-    const likes = numbers[1] || "0";
-    const retweets = numbers[2] || "0";
-
-    // Heat score
-    const heatEl = $el.find("[class*='heat'], [class*='score'], [class*='rank']").first();
-    const heatText = heatEl.text().trim();
-    const heatScore = parseFloat(heatText) || (100 - index) / 100;
-
-    // Tags from data attributes or class names
-    const tags: string[] = [];
-    const tagEls = $el.find("[class*='tag'], [data-tag]");
-    tagEls.each((_, t) => {
-      const tagText = $(t).text().trim();
-      if (tagText && tagText.length < 20) tags.push(tagText);
+    // Handle: p.text-slate-500 starting with @
+    let handle = "";
+    $a.find("p.text-slate-500").each((_, p) => {
+      const t = $(p).text().trim();
+      if (t.startsWith("@")) {
+        handle = t.replace(/^@/, "");
+        return false;
+      }
     });
 
-    // Tweet URL
-    const linkEl = $el.find("a[href*='twitter.com/'], a[href*='x.com/']").first();
-    const tweetUrl = linkEl.attr("href") || "";
-    const tweetId = tweetUrl.match(/status\/(\d+)/)?.[1] || String(index);
+    // Tweet content: p.text-slate-400
+    const content = $a.find("p.text-slate-400").first().text().trim();
 
-    if (content.length > 10) {
+    // Metrics
+    const views =
+      $a.find('span[title="Views"] .tabular-nums').first().text().trim() || "0";
+    const likes =
+      $a.find('span[title="Likes"] .tabular-nums').first().text().trim() || "0";
+    const retweets =
+      $a.find('span[title="Retweets"] .tabular-nums').first().text().trim() || "0";
+
+    // Heat score: span[title^="热度"]
+    const heatText = $a
+      .find('span[title^="热度"] .tabular-nums')
+      .first()
+      .text()
+      .trim();
+    const heatScore = parseFloat(heatText) || 0;
+
+    if (author && content) {
       tweets.push({
         id: tweetId,
-        rank: index + 1,
-        author: author || `User ${index + 1}`,
+        rank,
+        author,
         handle,
         avatar,
         content,
         views,
         likes,
         retweets,
-        heatScore: Math.min(1, Math.max(0, heatScore)),
-        tags,
-        url: tweetUrl,
+        heatScore,
+        tags: [],
+        url,
       });
     }
   });
 
+  // Parse domain tags and hot tags from filter area
+  const domainTags: { name: string; count: number }[] = [];
+  const hotTags: { name: string; count: number }[] = [];
+
+  $('a[href*="/zh/tweets?"][href*="tag="]').each((_, el) => {
+    const $el = $(el);
+    const href = $el.attr("href") || "";
+    const tagMatch = href.match(/tag=([^&]+)/);
+    if (!tagMatch) return;
+
+    const tagName = decodeURIComponent(tagMatch[1]);
+    const spans = $el.find("span");
+    const countText = spans.last().text().replace(/[()]/g, "").trim();
+    const count = parseInt(countText) || 0;
+
+    // Hot tags have inline rgba style, domain tags don't
+    const style = $el.attr("style") || "";
+    if (style.includes("rgba")) {
+      hotTags.push({ name: tagName, count });
+    } else {
+      domainTags.push({ name: tagName, count });
+    }
+  });
+
   return {
-    tweets: tweets.slice(0, 100),
-    hotTags: hotTags.slice(0, 20),
+    tweets: tweets.slice(0, 200),
+    domainTags,
+    hotTags,
     fetchedAt: new Date().toISOString(),
     group,
     hours,

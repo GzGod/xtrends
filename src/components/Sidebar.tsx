@@ -4,6 +4,7 @@ interface SidebarProps {
   activeGroup: string;
   activeHours: number;
   activeTag: string;
+  domainTags: { name: string; count: number }[];
   hotTags: { name: string; count: number }[];
   onGroupChange: (g: string) => void;
   onHoursChange: (h: number) => void;
@@ -26,6 +27,7 @@ export default function Sidebar({
   activeGroup,
   activeHours,
   activeTag,
+  domainTags,
   hotTags,
   onGroupChange,
   onHoursChange,
@@ -122,11 +124,11 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Hot tags */}
-      {hotTags.length > 0 && (
+      {/* Domain tags + Hot tags */}
+      {(domainTags.length > 0 || hotTags.length > 0) && (
         <div>
           <div className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2 px-1">
-            热门标签
+            标签分类
           </div>
           <div className="flex flex-col gap-1">
             <button
@@ -139,7 +141,7 @@ export default function Sidebar({
             >
               全部
             </button>
-            {hotTags.map((tag) => (
+            {domainTags.map((tag) => (
               <button
                 key={tag.name}
                 onClick={() => onTagChange(tag.name)}
@@ -153,6 +155,25 @@ export default function Sidebar({
                 <span className="text-xs text-white/30">{tag.count}</span>
               </button>
             ))}
+            {hotTags.length > 0 && (
+              <>
+                <div className="text-xs text-white/20 px-3 pt-2 pb-1">热门话题</div>
+                {hotTags.slice(0, 8).map((tag) => (
+                  <button
+                    key={tag.name}
+                    onClick={() => onTagChange(tag.name)}
+                    className={`text-left px-3 py-2 rounded-lg text-sm transition-all cursor-pointer flex items-center justify-between ${
+                      activeTag === tag.name
+                        ? "bg-pink-500/20 text-pink-400 border border-pink-500/30"
+                        : "text-white/60 hover:text-white/90 hover:bg-white/5"
+                    }`}
+                  >
+                    <span>{tag.name}</span>
+                    <span className="text-xs text-white/30">{tag.count}</span>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}

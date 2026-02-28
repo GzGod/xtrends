@@ -86,6 +86,7 @@ export default function Dashboard() {
           activeGroup={group}
           activeHours={hours}
           activeTag={tag}
+          domainTags={data?.domainTags ?? []}
           hotTags={data?.hotTags ?? []}
           onGroupChange={(g) => { setGroup(g); setTag(""); }}
           onHoursChange={(h) => setHours(h)}
