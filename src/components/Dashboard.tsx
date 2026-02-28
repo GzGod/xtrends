@@ -5,6 +5,7 @@ import { TrendData } from "@/lib/scraper";
 import TweetCard from "@/components/TweetCard";
 import Sidebar from "@/components/Sidebar";
 import TopicAnalytics from "@/components/TopicAnalytics";
+import WritingAdvice from "@/components/WritingAdvice";
 
 const SORT_OPTIONS = [
   { id: "rank", label: "热度排名" },
@@ -104,6 +105,13 @@ export default function Dashboard() {
           {(data?.domainTags?.length ?? 0) > 0 && (
             <div className="mb-5">
               <TopicAnalytics tweets={tweets} domainTags={data?.domainTags ?? []} />
+            </div>
+          )}
+
+          {/* AI Writing advice */}
+          {data && tweets.length > 0 && (
+            <div className="mb-5">
+              <WritingAdvice data={data} />
             </div>
           )}
           {/* Toolbar */}
