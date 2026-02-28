@@ -69,7 +69,7 @@ ${tweetLines}
 export async function POST(req: NextRequest) {
   const apiKey = process.env.AI_API_KEY;
   const apiBase = process.env.AI_API_BASE || "https://max.openai365.top/v1";
-  const model = process.env.AI_MODEL || "claude-3-7-sonnet";
+  const model = process.env.AI_MODEL || "gemini-2.5-pro";
 
   if (!apiKey) {
     return new Response(
