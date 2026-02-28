@@ -64,6 +64,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [pickerPos, setPickerPos] = useState({ top: 0, right: 0 });
   const modelBtnRef = useRef<HTMLButtonElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [topics, setTopics] = useState<string[]>([]);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [article, setArticle] = useState("");
@@ -76,7 +77,10 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   useEffect(() => {
     if (!showModelPicker) return;
     const handler = (e: MouseEvent) => {
-      if (modelBtnRef.current && !modelBtnRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inBtn = modelBtnRef.current?.contains(target);
+      const inPicker = pickerRef.current?.contains(target);
+      if (!inBtn && !inPicker) {
         setShowModelPicker(false);
       }
     };
@@ -201,6 +205,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
             </button>
             {showModelPicker && (
               <div
+                ref={pickerRef}
                 className="fixed z-[9999] w-52 bg-[#0f1629] border border-white/15 rounded-xl shadow-2xl overflow-hidden"
                 style={{ top: pickerPos.top, right: pickerPos.right }}
               >
