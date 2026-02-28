@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 1200,
+      max_tokens: 4096,
       temperature: 0.7,
     }),
     signal: AbortSignal.timeout(60000),
