@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TrendData } from "@/lib/scraper";
 
 interface WritingAdviceProps {
@@ -62,6 +62,8 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [step, setStep] = useState<Step>("idle");
   const [model, setModel] = useState(MODELS[0].id);
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [pickerPos, setPickerPos] = useState({ top: 0, right: 0 });
+  const modelBtnRef = useRef<HTMLButtonElement>(null);
   const [topics, setTopics] = useState<string[]>([]);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [article, setArticle] = useState("");
@@ -69,6 +71,29 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [open, setOpen] = useState(false);
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showModelPicker) return;
+    const handler = (e: MouseEvent) => {
+      if (modelBtnRef.current && !modelBtnRef.current.contains(e.target as Node)) {
+        setShowModelPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showModelPicker]);
+
+  const openModelPicker = () => {
+    if (modelBtnRef.current) {
+      const rect = modelBtnRef.current.getBoundingClientRect();
+      setPickerPos({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setShowModelPicker((v) => !v);
+  };
 
   const basePayload = {
     model,
@@ -159,9 +184,10 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
 
         <div className="flex items-center gap-2">
           {/* Model picker */}
-          <div className="relative">
+          <div>
             <button
-              onClick={() => setShowModelPicker((v) => !v)}
+              ref={modelBtnRef}
+              onClick={openModelPicker}
               disabled={isLoading}
               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white/50 hover:text-white/80 text-xs rounded-lg transition-all cursor-pointer disabled:opacity-40"
             >
@@ -174,7 +200,10 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
               </svg>
             </button>
             {showModelPicker && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-[#0f1629] border border-white/15 rounded-xl shadow-2xl overflow-hidden">
+              <div
+                className="fixed z-[9999] w-52 bg-[#0f1629] border border-white/15 rounded-xl shadow-2xl overflow-hidden"
+                style={{ top: pickerPos.top, right: pickerPos.right }}
+              >
                 {MODELS.map((m) => (
                   <button
                     key={m.id}
