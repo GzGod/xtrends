@@ -3,13 +3,36 @@ import Twitter from "next-auth/providers/twitter";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    {
-      ...Twitter({
-        clientId: process.env.AUTH_TWITTER_ID!,
-        clientSecret: process.env.AUTH_TWITTER_SECRET!,
-      }),
-      clientAuthMethod: "client_secret_basic" as const,
-    },
+    Twitter({
+      clientId: process.env.AUTH_TWITTER_ID!,
+      clientSecret: process.env.AUTH_TWITTER_SECRET!,
+      token: {
+        url: "https://api.twitter.com/2/oauth2/token",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async request({ provider, params, checks }: any) {
+          const credentials = Buffer.from(
+            `${provider.clientId}:${provider.clientSecret}`
+          ).toString("base64");
+          const body = new URLSearchParams({
+            grant_type: "authorization_code",
+            code: params.code,
+            redirect_uri: provider.callbackUrl,
+          });
+          if (checks.code_verifier) body.set("code_verifier", checks.code_verifier);
+          const res = await fetch("https://api.twitter.com/2/oauth2/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Authorization: `Basic ${credentials}`,
+            },
+            body: body.toString(),
+          });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          const tokens = await res.json();
+          return { tokens };
+        },
+      },
+    }),
   ],
   callbacks: {
     jwt({ token, profile }) {
