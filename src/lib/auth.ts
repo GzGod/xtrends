@@ -3,10 +3,13 @@ import Twitter from "next-auth/providers/twitter";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    Twitter({
-      clientId: process.env.AUTH_TWITTER_ID!,
-      clientSecret: process.env.AUTH_TWITTER_SECRET!,
-    }),
+    {
+      ...Twitter({
+        clientId: process.env.AUTH_TWITTER_ID!,
+        clientSecret: process.env.AUTH_TWITTER_SECRET!,
+      }),
+      clientAuthMethod: "client_secret_basic" as const,
+    },
   ],
   callbacks: {
     jwt({ token, profile }) {
