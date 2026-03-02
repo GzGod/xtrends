@@ -6,6 +6,7 @@ import TweetCard from "@/components/TweetCard";
 import Sidebar from "@/components/Sidebar";
 import TopicAnalytics from "@/components/TopicAnalytics";
 import WritingAdvice from "@/components/WritingAdvice";
+import UserButton from "@/components/UserButton";
 
 const SORT_OPTIONS = [
   { id: "rank", label: "热度排名" },
@@ -82,6 +83,18 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0f1e] text-white">
+      {/* Header */}
+      <header className="border-b border-white/5 bg-[#0a0f1e]/80 backdrop-blur sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            <span className="text-sm font-semibold text-white/80">X Trends</span>
+          </div>
+          <UserButton />
+        </div>
+      </header>
       <div className="max-w-7xl mx-auto px-4 py-6 flex gap-6">
         {/* Sidebar */}
         <Sidebar
