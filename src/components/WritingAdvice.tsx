@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSession, signIn } from "next-auth/react";
 import { TrendData } from "@/lib/scraper";
 
 interface WritingAdviceProps {
@@ -20,6 +21,12 @@ const MODELS = [
 
 type Step = "idle" | "loading-topics" | "pick-topic" | "loading-article" | "done";
 
+class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 async function streamText(
   body: object,
   onChunk: (text: string) => void
@@ -32,7 +39,7 @@ async function streamText(
 
   if (!res.ok) {
     const d = await res.json().catch(() => ({}));
-    throw new Error(d.error || `HTTP ${res.status}`);
+    throw new ApiError(res.status, d.error || `HTTP ${res.status}`);
   }
 
   const reader = res.body!.getReader();
@@ -61,6 +68,7 @@ async function streamText(
 }
 
 export default function WritingAdvice({ data }: WritingAdviceProps) {
+  const { data: session, status } = useSession();
   const [step, setStep] = useState<Step>("idle");
   const [model, setModel] = useState(MODELS[0].id);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -75,6 +83,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [aiHours, setAiHours] = useState(data.hours);
   const [aiData, setAiData] = useState<TrendData>(data);
   const [format, setFormat] = useState<"short" | "long">("long");
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
 
@@ -168,7 +177,11 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       setTopics(parsed.slice(0, 10));
       setStep("pick-topic");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "生成失败");
+      if (e instanceof ApiError && e.status === 403) {
+        setAccessDenied(true);
+      } else {
+        setError(e instanceof Error ? e.message : "生成失败");
+      }
       setStep("idle");
     }
   };
@@ -185,8 +198,13 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       });
       setStep("done");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "生成失败");
-      setStep("pick-topic");
+      if (e instanceof ApiError && e.status === 403) {
+        setAccessDenied(true);
+        setStep("idle");
+      } else {
+        setError(e instanceof Error ? e.message : "生成失败");
+        setStep("pick-topic");
+      }
     }
   };
 
@@ -199,6 +217,55 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   };
 
   const isLoading = step === "loading-topics" || step === "loading-article";
+
+  // Auth gate: loading session
+  if (status === "loading") {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4">
+        <span className="text-sm text-white/30">加载中...</span>
+      </div>
+    );
+  }
+
+  // Auth gate: not logged in
+  if (status === "unauthenticated") {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span className="text-sm text-white/50">AI 写作助手</span>
+          <span className="text-xs text-white/25 bg-white/5 px-2 py-0.5 rounded-full">需要登录</span>
+        </div>
+        <button
+          onClick={() => signIn("twitter")}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/30 text-sky-300 text-xs font-medium rounded-lg transition-all cursor-pointer"
+        >
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+          </svg>
+          推特登录
+        </button>
+      </div>
+    );
+  }
+
+  // Auth gate: logged in but not whitelisted
+  if (session && accessDenied) {
+    return (
+      <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-yellow-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-sm text-white/50">AI 写作助手</span>
+          <span className="text-xs text-yellow-400/70 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-full">申请中</span>
+        </div>
+        <span className="text-xs text-white/30">@{session.user.twitterHandle} · 等待审核</span>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">

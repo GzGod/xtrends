@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import { isWhitelisted } from "@/lib/kv";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -139,6 +141,21 @@ async function streamFromAI(
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.twitterHandle) {
+    return new Response(JSON.stringify({ error: "请先登录" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const whitelisted = await isWhitelisted(session.user.twitterHandle);
+  if (!whitelisted) {
+    return new Response(JSON.stringify({ error: "无访问权限，请等待审核" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const apiKey = process.env.AI_API_KEY;
   const apiBase = process.env.AI_API_BASE || "https://max.openai365.top/v1";
   const defaultModel = process.env.AI_MODEL || "gemini-2.5-pro";
