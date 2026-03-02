@@ -251,24 +251,54 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
     );
   }
 
-  // Auth gate: logged in but not whitelisted
-  if (session && accessDenied) {
-    return (
-      <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-yellow-400/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm text-white/50">AI 写作助手</span>
-          <span className="text-xs text-yellow-400/70 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-full">申请中</span>
+  // Access denied modal (logged in but not whitelisted)
+  const accessModal = accessDenied && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setAccessDenied(false)}>
+      <div className="bg-[#0f1629] border border-white/15 rounded-2xl p-6 w-80 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white/80">获取白名单访问权限</h3>
+          <button onClick={() => setAccessDenied(false)} className="text-white/30 hover:text-white/60 transition-colors cursor-pointer">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <span className="text-xs text-white/30">@{session.user.twitterHandle} · 等待审核</span>
+        <p className="text-xs text-white/40 mb-4">AI 写作助手为白名单用户专属功能，免费申请：</p>
+        <div className="space-y-2.5 mb-5">
+          <div className="flex items-center gap-2 text-xs text-white/60">
+            <span className="text-white/25">1.</span>
+            <span>关注推特账号</span>
+            <a href="https://x.com/xuegaogx" target="_blank" rel="noreferrer"
+              className="text-sky-400 hover:text-sky-300 transition-colors">@Xuegaogx</a>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-white/60">
+            <span className="text-white/25">2.</span>
+            <span>联系申请白名单</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <a href="https://x.com/xuegaogx" target="_blank" rel="noreferrer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/25 text-sky-300 text-xs rounded-lg transition-all cursor-pointer">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            推特
+          </a>
+          <a href="https://t.me/xuegaozhanshen" target="_blank" rel="noreferrer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/25 text-blue-300 text-xs rounded-lg transition-all cursor-pointer">
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+            </svg>
+            Telegram
+          </a>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+      {accessModal}
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
