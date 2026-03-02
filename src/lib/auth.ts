@@ -14,8 +14,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, profile }) {
       if (profile) {
-        token.twitterHandle = (profile as { username?: string }).username ?? "";
-        token.twitterId = (profile as { id?: string }).id ?? "";
+        const p = profile as { username?: string; id?: string; data?: { username?: string; id?: string } };
+        token.twitterHandle = p.username ?? p.data?.username ?? "";
+        token.twitterId = p.id ?? p.data?.id ?? "";
       }
       return token;
     },
