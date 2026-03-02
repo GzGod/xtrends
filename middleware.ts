@@ -4,8 +4,8 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) {
-    // Don't block the login page itself
-    if (pathname === "/admin/login") return NextResponse.next();
+    // Don't block the login page or login API
+    if (pathname === "/admin/login" || pathname === "/api/admin/login") return NextResponse.next();
 
     const adminSecret = process.env.ADMIN_SECRET;
     const cookie = req.cookies.get("admin_auth")?.value;
