@@ -11,12 +11,7 @@ interface WritingAdviceProps {
 const HOURS_OPTIONS = [1, 4, 24];
 
 const MODELS = [
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-  { id: "gemini-3-pro-preview", label: "Gemini 3 Pro" },
-  { id: "gemini-3-pro-preview-maxthinking", label: "Gemini 3 Pro 深思" },
-  { id: "gemini-3-flash-preview", label: "Gemini 3 Flash" },
-  { id: "[普克]claude-sonnet-4-6", label: "Claude Sonnet 4.6" },
-  { id: "[普克]claude-opus-4-6", label: "Claude Opus 4.6" },
+  { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
 ];
 
 type Step = "idle" | "loading-topics" | "pick-topic" | "loading-article" | "done";
