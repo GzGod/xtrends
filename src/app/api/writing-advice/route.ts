@@ -34,9 +34,7 @@ interface RequestBody {
 function buildTopicsPrompt(body: RequestBody): string {
   const { tweets, domainTags, hotTags, group, hours } = body;
   const groupLabel = group === "cn" ? "中文推特圈" : group === "en" ? "英文推特圈" : "全球推特";
-  const top20 = tweets.slice(0, 20);
-
-  const tweetLines = top20
+  const tweetLines = tweets
     .map((t, i) => `${i + 1}. [热度${t.heatScore.toFixed(0)}|${t.views}浏览] ${t.content}（@${t.author}）`)
     .join("\n");
 
@@ -45,13 +43,13 @@ function buildTopicsPrompt(body: RequestBody): string {
 
   return `你是一位专业的社交媒体内容策略师。
 
-当前数据：${groupLabel}，过去 ${hours} 小时热门推文 TOP 20：
+当前数据：${groupLabel}，过去 ${hours} 小时热门推文 TOP ${tweets.length}：
 ${tweetLines}
 
 领域分布：${domainStr}
 热门话题：${hotStr}
 
-请从以上数据中提炼出 5~10 个最值得写的选题方向。
+请从以上数据中提炼出 15~20 个最值得写的选题方向。
 
 输出格式要求（严格遵守）：
 - 只输出选题列表，不要任何前言、解释、总结
