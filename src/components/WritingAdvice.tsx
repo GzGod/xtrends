@@ -146,7 +146,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const basePayload = {
     model,
     skill,
-    tweets: aiData.tweets.slice(0, 30).map((t) => ({
+    tweets: aiData.tweets.map((t) => ({
       rank: t.rank,
       author: t.author,
       content: t.content,
@@ -179,7 +179,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       const parsed = raw
         .split("\n")
         .map((l) => l.replace(/^\d+\.\s*/, "").trim())
-        .filter((l) => l.length > 2 && l.length < 60);
+        .filter((l) => l.length > 2 && l.length < 100);
       setTopics(parsed.slice(0, 20));
       setStep("pick-topic");
     } catch (e) {
