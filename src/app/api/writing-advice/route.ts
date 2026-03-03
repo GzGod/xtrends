@@ -583,7 +583,7 @@ export async function POST(req: NextRequest) {
         });
       }
       const skill: Skill = body.skill ?? "research";
-      const systemPrompt = SKILL_PROMPTS[skill] + HUMANIZER_SUFFIX;
+      const systemPrompt = HUMANIZER_SUFFIX + "\n\n" + SKILL_PROMPTS[skill];
       const userPrompt = buildArticlePrompt(body.topic, body.format ?? "long");
 
       return await streamFromAI(apiBase, apiKey, model, [
