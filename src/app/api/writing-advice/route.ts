@@ -430,7 +430,9 @@ function buildArticlePrompt(topic: string, format: "short" | "long"): string {
 - 语气克制，信息浓缩，一针见血
 - 可以有断裂感和留白，不需要完整结构
 - 结尾可以不加免责声明
-- 直接输出正文，不要任何前言或说明`;
+- 直接输出正文，不要任何前言或说明
+- 禁止：首先/其次/最后、综上所述、革命性、颠覆性、这说明了、深度剖析
+- 开头直接切入，不用"随着…""在当今…"`;
   }
   return `请围绕以下选题，按照你的写作风格写一篇推特长文/文章：
 
@@ -439,7 +441,10 @@ function buildArticlePrompt(topic: string, format: "short" | "long"): string {
 要求：
 - 字数 600~1000 字
 - 严格遵守你的写作风格和结构模板
-- 直接输出文章正文，不要任何前言或说明`;
+- 直接输出文章正文，不要任何前言或说明
+- 禁止使用：首先/其次/最后、综上所述、值得注意的是、不得不说、革命性、颠覆性、这说明了、这意味着、深度剖析、全面解读
+- 禁止三段式排比，禁止em破折号（——）连接独立判断
+- 开头不用"随着…""在当今…""近年来…"，直接切入具体场景或数据`;
 }
 
 async function streamFromAI(
@@ -459,7 +464,7 @@ async function streamFromAI(
       messages,
       stream: true,
       max_tokens: 4096,
-      temperature: 0.75,
+      temperature: 0.9,
     }),
     signal: AbortSignal.timeout(120000),
   });
