@@ -25,6 +25,8 @@ type SkillId = typeof SKILLS[number]["id"];
 
 type Step = "idle" | "loading-topics" | "pick-topic" | "loading-article" | "done";
 
+type Topic = { title: string; sources: number[] };
+
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -79,7 +81,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [pickerPos, setPickerPos] = useState({ top: 0, right: 0 });
   const modelBtnRef = useRef<HTMLButtonElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const [topics, setTopics] = useState<string[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState("");
   const [article, setArticle] = useState("");
   const [error, setError] = useState("");
@@ -89,6 +91,8 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [format, setFormat] = useState<"short" | "long">("long");
   const [skill, setSkill] = useState<SkillId>("research");
   const [accessDenied, setAccessDenied] = useState(false);
+  const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
 
@@ -175,11 +179,21 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       await streamText({ ...basePayload, mode: "topics" }, (chunk) => {
         raw += chunk;
       });
-      // Parse numbered list lines
+      // Parse numbered list lines with optional source indices [1,2,3]
       const parsed = raw
         .split("\n")
-        .map((l) => l.replace(/^\d+\.\s*/, "").trim())
-        .filter((l) => l.length > 2 && l.length < 100);
+        .map((l) => {
+          const stripped = l.replace(/^\d+\.\s*/, "").trim();
+          const match = stripped.match(/^(.*?)\s*\[(\d+(?:,\s*\d+)*)\]$/);
+          if (match) {
+            const title = match[1].trim();
+            const sources = match[2].split(",").map((s) => parseInt(s.trim(), 10) - 1);
+            if (title.length > 2 && title.length < 100) return { title, sources };
+          }
+          if (stripped.length > 2 && stripped.length < 100) return { title: stripped, sources: [] };
+          return null;
+        })
+        .filter((t): t is Topic => t !== null);
       setTopics(parsed.slice(0, 20));
       setStep("pick-topic");
     } catch (e) {
@@ -486,16 +500,31 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
                 {topics.map((topic, i) => (
                   <button
                     key={i}
-                    onClick={() => generateArticle(topic)}
+                    onClick={() => generateArticle(topic.title)}
+                    onMouseEnter={(e) => {
+                      if (topic.sources.length === 0) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const tooltipWidth = 288;
+                      const spaceRight = window.innerWidth - rect.right - 8;
+                      setTooltipPos({
+                        top: rect.top,
+                        left: spaceRight >= tooltipWidth ? rect.right + 8 : rect.left - tooltipWidth - 8,
+                      });
+                      setHoveredTopic(i);
+                    }}
+                    onMouseLeave={() => setHoveredTopic(null)}
                     disabled={isLoading}
                     className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer border ${
-                      selectedTopic === topic
+                      selectedTopic === topic.title
                         ? "bg-purple-500/15 border-purple-500/30 text-purple-200"
                         : "bg-white/3 border-white/8 text-white/70 hover:bg-white/8 hover:border-white/15 hover:text-white/90"
                     } disabled:opacity-40`}
                   >
                     <span className="text-white/30 font-mono text-xs mr-2">{String(i + 1).padStart(2, "0")}</span>
-                    {topic}
+                    {topic.title}
+                    {topic.sources.length > 0 && (
+                      <span className="ml-2 text-white/20 text-xs font-mono">[{topic.sources.length}]</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -541,6 +570,37 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
               点击「获取选题」，AI 分析当前热榜后给出选题方向
             </p>
           )}
+        </div>
+      )}
+
+      {/* Source tweets tooltip */}
+      {hoveredTopic !== null && topics[hoveredTopic]?.sources.length > 0 && (
+        <div
+          className="fixed z-[9999] w-72 bg-[#0f1629] border border-white/15 rounded-xl p-3 shadow-2xl pointer-events-none"
+          style={{ top: tooltipPos.top, left: tooltipPos.left }}
+        >
+          <p className="text-xs text-white/30 mb-2.5">
+            来源推文 · {topics[hoveredTopic].sources.length} 条
+          </p>
+          <div className="space-y-2.5">
+            {topics[hoveredTopic].sources.slice(0, 4).map((idx) => {
+              const tweet = aiData.tweets[idx];
+              if (!tweet) return null;
+              return (
+                <div key={idx} className="flex gap-2">
+                  <span className="text-white/20 font-mono text-xs shrink-0 mt-0.5 w-5 text-right">
+                    {tweet.rank}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-sky-400/60 text-xs">@{tweet.author}</span>
+                    <p className="text-white/50 text-xs mt-0.5 line-clamp-2 leading-relaxed">
+                      {tweet.content}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
