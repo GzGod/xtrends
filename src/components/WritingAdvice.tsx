@@ -93,6 +93,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [accessDenied, setAccessDenied] = useState(false);
   const [hoveredTopic, setHoveredTopic] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
 
@@ -158,6 +159,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       likes: t.likes,
       heatScore: t.heatScore,
       tags: t.tags,
+      url: t.url,
     })),
     domainTags: aiData.domainTags,
     hotTags: aiData.hotTags,
@@ -502,6 +504,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
                     key={i}
                     onClick={() => generateArticle(topic.title)}
                     onMouseEnter={(e) => {
+                      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
                       if (topic.sources.length === 0) return;
                       const rect = e.currentTarget.getBoundingClientRect();
                       const tooltipWidth = 288;
@@ -512,7 +515,9 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
                       });
                       setHoveredTopic(i);
                     }}
-                    onMouseLeave={() => setHoveredTopic(null)}
+                    onMouseLeave={() => {
+                      hideTimeoutRef.current = setTimeout(() => setHoveredTopic(null), 150);
+                    }}
                     disabled={isLoading}
                     className={`text-left px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer border ${
                       selectedTopic === topic.title
@@ -576,28 +581,46 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
       {/* Source tweets tooltip */}
       {hoveredTopic !== null && topics[hoveredTopic]?.sources.length > 0 && (
         <div
-          className="fixed z-[9999] w-72 bg-[#0f1629] border border-white/15 rounded-xl p-3 shadow-2xl pointer-events-none"
+          className="fixed z-[9999] w-72 bg-[#0f1629] border border-white/15 rounded-xl p-3 shadow-2xl"
           style={{ top: tooltipPos.top, left: tooltipPos.left }}
+          onMouseEnter={() => {
+            if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+          }}
+          onMouseLeave={() => {
+            hideTimeoutRef.current = setTimeout(() => setHoveredTopic(null), 150);
+          }}
         >
           <p className="text-xs text-white/30 mb-2.5">
             来源推文 · {topics[hoveredTopic].sources.length} 条
           </p>
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {topics[hoveredTopic].sources.slice(0, 4).map((idx) => {
               const tweet = aiData.tweets[idx];
               if (!tweet) return null;
+              const href = tweet.url || `https://x.com/${tweet.author}`;
               return (
-                <div key={idx} className="flex gap-2">
+                <a
+                  key={idx}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex gap-2 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+                >
                   <span className="text-white/20 font-mono text-xs shrink-0 mt-0.5 w-5 text-right">
                     {tweet.rank}
                   </span>
                   <div className="min-w-0">
-                    <span className="text-sky-400/60 text-xs">@{tweet.author}</span>
-                    <p className="text-white/50 text-xs mt-0.5 line-clamp-2 leading-relaxed">
+                    <span className="text-sky-400/60 text-xs group-hover:text-sky-400/90 transition-colors">
+                      @{tweet.author}
+                    </span>
+                    <p className="text-white/50 text-xs mt-0.5 line-clamp-2 leading-relaxed group-hover:text-white/70 transition-colors">
                       {tweet.content}
                     </p>
                   </div>
-                </div>
+                  <svg className="w-3 h-3 text-white/15 group-hover:text-white/40 shrink-0 mt-0.5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
               );
             })}
           </div>

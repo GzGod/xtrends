@@ -13,6 +13,7 @@ interface TweetSummary {
   likes: string;
   heatScore: number;
   tags: string[];
+  url?: string;
 }
 
 type Skill = "research" | "explainer" | "commentary" | "deep-dive";
