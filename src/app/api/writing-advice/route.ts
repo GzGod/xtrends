@@ -170,6 +170,20 @@ const SKILL_PROMPTS: Record<Skill, string> = {
 结尾：综合判断（含风险），最后加：本文不构成任何投资建议`,
 };
 
+// 追加到每个 skill prompt 末尾，一次生成同时去除 AI 味
+const HUMANIZER_SUFFIX = `
+
+【输出时严格执行：去除AI写作痕迹】
+- 禁止否定式排比：不是…而是…、这不仅仅是…而是…（直接陈述核心观点）
+- 禁止模糊归因：行业专家认为、观察者指出、有分析师表示（无具体来源时删除整句）
+- 禁止宣传性语言：坐落于、充满活力的、迷人的、令人叹为观止
+- 禁止公式化结尾（"未来可期""激动人心的时代即将到来"等模糊乐观句）
+- 禁止粗体标记（**文字**）
+- 禁止表情符号
+- 禁止填充短语：值得注意的是、在这个时间点、不得不说
+- 句子节奏要有变化，混合长短句，两项优于三项排比
+- 有观点，不做中立报道，对事实做出反应`;
+
 const HUMANIZER_PROMPT = `你是一位文字编辑，专门识别和去除AI生成文本的痕迹，使文字听起来更自然、更有人味。
 
 你的任务：
@@ -441,18 +455,12 @@ export async function POST(req: NextRequest) {
         });
       }
       const skill: Skill = body.skill ?? "research";
-      const systemPrompt = SKILL_PROMPTS[skill];
+      const systemPrompt = SKILL_PROMPTS[skill] + HUMANIZER_SUFFIX;
       const userPrompt = buildArticlePrompt(body.topic, body.format ?? "long");
 
-      // Collect draft first, then humanize and stream result
-      const draft = await collectStream(apiBase, apiKey, model, [
+      return await streamFromAI(apiBase, apiKey, model, [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
-      ]);
-
-      return await streamFromAI(apiBase, apiKey, model, [
-        { role: "system", content: HUMANIZER_PROMPT },
-        { role: "user", content: draft },
       ]);
     } else {
       return await streamFromAI(apiBase, apiKey, model, [
