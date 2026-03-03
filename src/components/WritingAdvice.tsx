@@ -14,6 +14,15 @@ const MODELS = [
   { id: "claude-opus-4-6", label: "Claude Opus 4.6" },
 ];
 
+const SKILLS = [
+  { id: "research", label: "投研风格" },
+  { id: "explainer", label: "科普解读" },
+  { id: "commentary", label: "热点评论" },
+  { id: "deep-dive", label: "项目深度" },
+] as const;
+
+type SkillId = typeof SKILLS[number]["id"];
+
 type Step = "idle" | "loading-topics" | "pick-topic" | "loading-article" | "done";
 
 class ApiError extends Error {
@@ -78,6 +87,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
   const [aiHours, setAiHours] = useState(data.hours);
   const [aiData, setAiData] = useState<TrendData>(data);
   const [format, setFormat] = useState<"short" | "long">("long");
+  const [skill, setSkill] = useState<SkillId>("research");
   const [accessDenied, setAccessDenied] = useState(false);
 
   const selectedModel = MODELS.find((m) => m.id === model) ?? MODELS[0];
@@ -135,6 +145,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
 
   const basePayload = {
     model,
+    skill,
     tweets: aiData.tweets.slice(0, 30).map((t) => ({
       rank: t.rank,
       author: t.author,
@@ -309,6 +320,24 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Skill selector */}
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5">
+            {SKILLS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSkill(s.id)}
+                disabled={isLoading}
+                className={`px-2 py-1 rounded text-xs transition-all cursor-pointer disabled:opacity-40 ${
+                  skill === s.id
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                    : "text-white/40 hover:text-white/70"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
           {/* Format toggle */}
           <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5">
             <button
@@ -434,7 +463,7 @@ export default function WritingAdvice({ data }: WritingAdviceProps) {
               <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              {step === "loading-topics" ? "分析热榜..." : "生成文章..."}
+              {step === "loading-topics" ? "分析热榜..." : "生成中（两步处理）..."}
             </div>
           )}
         </div>
