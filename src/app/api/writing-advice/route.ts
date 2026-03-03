@@ -4,6 +4,7 @@ import { isWhitelisted } from "@/lib/kv";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 interface TweetSummary {
   rank: number;
@@ -323,7 +324,7 @@ async function streamFromAI(
       max_tokens: 4096,
       temperature: 0.75,
     }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(120000),
   });
 
   if (!aiRes.ok) {
